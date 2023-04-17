@@ -1,3 +1,4 @@
+const fs = require("fs");
 const { Movie, Actor } = require("../../models/Movie");
 
 const create = async (req, res) => {
@@ -85,7 +86,7 @@ const remove = async (req, res) => {
       status: 0,
       error: {
         fields: {
-          id: NO_SPECIFIED,
+          id: "NO_SPECIFIED",
         },
         code: "NOT_ALL_PARAMETERS",
       },
@@ -149,7 +150,7 @@ const update = async (req, res) => {
       status: 0,
       error: {
         fields: {
-          id: NO_SPECIFIED,
+          id: "NO_SPECIFIED",
         },
         code: "NOT_ALL_PARAMETERS",
       },
@@ -225,11 +226,110 @@ const update = async (req, res) => {
   });
 };
 
-const getById = async (req, res) => {};
+const getById = async (req, res) => {
+  const movieId = +req.params.movieId;
 
-const list = async (req, res) => {
-  const movies = await Movie.findAll({});
-  return res.status(200).json({ list: movies });
+  if (!movieId) {
+    return res.status(400).json({
+      status: 0,
+      error: {
+        fields: {
+          id: "NO_SPECIFIED",
+        },
+        code: "NOT_ALL_PARAMETERS",
+      },
+    });
+  }
+
+  const movieExist = await Movie.findOne({ where: { id: movieId } });
+  if (!movieExist) {
+    return res.status(400).json({
+      status: 0,
+      error: {
+        fields: {
+          id: movieId,
+        },
+        code: "MOVIE_NOT_FOUND",
+      },
+    });
+  }
+
+  let actors = await movieExist.getActors();
+  actors = actors.map((actor) => ({
+    id: actor.id,
+    name: actor.name,
+    createdAt: actor.createdAt,
+    updatedAt: actor.updatedAt,
+  }));
+
+  return res.status(200).json({
+    status: 1,
+    data: {
+      id: movieExist.id,
+      title: movieExist.title,
+      year: movieExist.year,
+      format: movieExist.format,
+      actors,
+    },
+  });
 };
 
-module.exports = { create, remove, update, getById, list };
+const list = async (req, res) => {
+  const { sort, order, limit, offset } = req.query;
+
+  const options = {
+    order: [[sort, order]],
+    limit: parseInt(limit),
+    offset: parseInt(offset),
+  };
+
+  try {
+    const movies = await Movie.findAll(options);
+
+    return res.status(200).json({
+      status: 1,
+      meta: {
+        total: movies.length,
+      },
+      data: movies,
+    });
+  } catch (err) {
+    res.status(500).json({ status: 0, error: err.message });
+  }
+};
+
+const importFile = async (req, res) => {
+  const { movies } = req.body;
+
+  const fileData = fs.readFileSync(movies, "utf-8");
+  const parsedJSON = parseIntoJSON(fileData);
+
+  try {
+    const createdMovies = await Movie.bulkCreate(parsedJSON);
+    return res.status(200).send({ status: 1, data: createdMovies });
+  } catch (err) {
+    res.status(400).json({ status: 0, error: err.message });
+  }
+};
+
+const parseIntoJSON = (fileData) => {
+  const movieRegex =
+    /^Title: (.+)\nRelease Year: (\d+)\nFormat: (.+)\nStars: (.+)$/gm;
+
+  const movies = [];
+
+  let match;
+  while ((match = movieRegex.exec(fileData)) !== null) {
+    const movie = {
+      title: match[1],
+      releaseYear: match[2],
+      format: match[3],
+      stars: match[4].split(",").map((s) => s.trim()),
+    };
+    movies.push(movie);
+  }
+
+  return movies;
+};
+
+module.exports = { create, remove, update, getById, list, importFile };
