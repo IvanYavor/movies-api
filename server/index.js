@@ -9,7 +9,7 @@ require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 const apiRoutes = require("./routes/index");
 
 const app = express();
-const apiPort = process.env.API_PORT || 3000;
+const apiPort = process.env.API_PORT || 8000;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
