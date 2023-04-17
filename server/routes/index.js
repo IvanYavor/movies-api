@@ -13,6 +13,7 @@ router.post("/sessions", sessionsController.create);
 router.post("/movies", auth, moviesController.create);
 router.delete("/movies/:movieId", auth, moviesController.remove);
 router.patch("/movies/:movieId", auth, moviesController.update);
+router.get("/movies/:movieId", auth, moviesController.getById);
 router.get("/movies", auth, moviesController.list);
 
 module.exports = router;

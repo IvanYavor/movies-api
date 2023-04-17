@@ -169,29 +169,67 @@ const update = async (req, res) => {
     });
   }
 
-  // TODO update actors
-  // TODO delete prev ones and create new ones
   const actors = await movieExist.getActors();
   await Actor.destroy({
     where: { id: actors.map((actor) => actor.id) },
   });
 
-  await Actor.create({});
+  const actorsCreatedPromises = [];
+  for (const actorName of actorsInput) {
+    actorsCreatedPromises.push(Actor.create({ name: actorName }));
+  }
 
-  // TODO update movie
+  let actorsCreated;
+  try {
+    actorsCreated = await Promise.all(actorsCreatedPromises);
+  } catch (err) {
+    return res.status(400).json({
+      status: 0,
+      error: {
+        fields: {
+          actors: "FAILED_TO_SAVE",
+        },
+        code: "FAILED_TO_SAVE_ACTORS",
+      },
+    });
+  }
+
   movieExist.title = title || movieExist.title;
   movieExist.year = year || movieExist.year;
   movieExist.format = format || movieExist.format;
 
-  const [rowsUpdated, [updatedMovie]] = movieExist.update(
-    { title, year, format },
-    { where: { id: movieExist.id }, returning: true }
-  );
+  let updatedMovie;
+  try {
+    updatedMovie = await movieExist.update(
+      { title, year, format },
+      { returning: true }
+    );
+  } catch (err) {
+    res.status(400).json({
+      status: 0,
+      error: {
+        code: "FAILED_TO_UPDATE_MOVIE",
+      },
+    });
+  }
+
+  return res.status(200).json({
+    status: 1,
+    data: {
+      id: updatedMovie.id,
+      title: updatedMovie.title,
+      year: updatedMovie.year,
+      format: updatedMovie.format,
+      actors: actorsCreated,
+    },
+  });
 };
+
+const getById = async (req, res) => {};
 
 const list = async (req, res) => {
   const movies = await Movie.findAll({});
   return res.status(200).json({ list: movies });
 };
 
-module.exports = { create, remove, update, list };
+module.exports = { create, remove, update, getById, list };
