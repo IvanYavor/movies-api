@@ -304,12 +304,28 @@ const importFile = async (req, res) => {
   const fileData = fs.readFileSync(movies, "utf-8");
   const parsedJSON = parseIntoJSON(fileData);
 
-  try {
-    const createdMovies = await Movie.bulkCreate(parsedJSON);
-    return res.status(200).send({ status: 1, data: createdMovies });
-  } catch (err) {
-    res.status(400).json({ status: 0, error: err.message });
+  const createdMovies = [];
+  for (const movieInfo of parsedJSON) {
+    try {
+      const createdMovie = await Movie.create({
+        title: movieInfo.title,
+        year: movieInfo.year,
+        format: movieInfo.format,
+      });
+
+      const createdActors = [];
+      for (const actorName of movieInfo.stars) {
+        createdActors.push(await Actor.create({ name: actorName }));
+      }
+
+      await createdMovie.addActors(createdActors);
+      createdMovies.push(createdMovie);
+    } catch (err) {
+      return res.status(400).json({ status: 0, error: err.message });
+    }
   }
+
+  return res.status(200).send({ status: 1, data: createdMovies });
 };
 
 const parseIntoJSON = (fileData) => {

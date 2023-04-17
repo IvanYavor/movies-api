@@ -18,7 +18,6 @@ Actor.init(
 
 class Movie extends Model {}
 
-// TODO need another table actor?
 Movie.init(
   {
     title: {
