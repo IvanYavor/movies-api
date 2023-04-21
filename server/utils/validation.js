@@ -6,7 +6,7 @@ const validateEmail = (email) => {
     );
 };
 
-const validateMovie = ({ title, year, format }) => {
+const validateCreateMovie = ({ title, year, format }) => {
   if (title.trim() === "") return false;
 
   if (year < 1850 || year > new Date().getFullYear()) {
@@ -34,4 +34,8 @@ const validateUpdateMovie = ({ title, year, format }) => {
   return true;
 };
 
-module.exports = { validateEmail, validateMovie, validateUpdateMovie };
+module.exports = {
+  validateEmail,
+  validateCreateMovie,
+  validateUpdateMovie,
+};

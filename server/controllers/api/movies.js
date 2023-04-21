@@ -2,7 +2,7 @@ const fs = require("fs");
 const { Movie, Actor } = require("../../models/Movie");
 const { buildListQuery } = require("../../utils/query");
 const {
-  validateMovie,
+  validateCreateMovie,
   validateUpdateMovie,
 } = require("../../utils/validation");
 
@@ -12,7 +12,7 @@ const create = async (req, res) => {
 
     const { title, year, format, actors } = body;
 
-    if (!title || !year || !format || !actors.length) {
+    if (!title || !year || !format || !actors?.length) {
       return res.status(400).json({
         status: 0,
         error: {
@@ -27,7 +27,7 @@ const create = async (req, res) => {
       });
     }
 
-    if (!validateMovie({ title, year, format })) {
+    if (!validateCreateMovie({ title, year, format })) {
       return res.status(400).json({
         status: 0,
         error: {
@@ -203,19 +203,25 @@ const update = async (req, res) => {
     });
   }
 
-  const actors = await movieExist.getActors();
-  await Actor.destroy({
-    where: { id: actors.map((actor) => actor.id) },
-  });
+  let actors;
+  if (actorsInput?.length > 0) {
+    actors = await movieExist.getActors();
+    await Actor.destroy({
+      where: { id: actors.map((actor) => actor.id) },
+    });
+  }
 
   const actorsCreatedPromises = [];
-  for (const actorName of actorsInput) {
-    actorsCreatedPromises.push(Actor.create({ name: actorName }));
+  if (actorsInput) {
+    for (const actorName of actorsInput) {
+      actorsCreatedPromises.push(Actor.create({ name: actorName }));
+    }
   }
 
   let actorsCreated;
   try {
     actorsCreated = await Promise.all(actorsCreatedPromises);
+    await movieExist.addActors(actorsCreated);
   } catch (err) {
     return res.status(400).json({
       status: 0,
@@ -254,7 +260,7 @@ const update = async (req, res) => {
       title: updatedMovie.title,
       year: updatedMovie.year,
       format: updatedMovie.format,
-      actors: actorsCreated,
+      actors: actorsCreated.length > 0 ? actorsCreated : actors,
     },
   });
 };
@@ -344,7 +350,7 @@ const importFile = async (req, res) => {
 
   const createdMovies = [];
   for (const movieInfo of parsedJSON) {
-    if (validateMovie(movieInfo)) {
+    if (validateCreateMovie(movieInfo)) {
       try {
         const createdMovie = await Movie.create({
           title: movieInfo.title,
@@ -362,9 +368,6 @@ const importFile = async (req, res) => {
       } catch (err) {
         return res.status(400).json({ status: 0, error: err.message });
       }
-    } else {
-      // TODO delete else
-      console.log("Not valid movie");
     }
   }
 
