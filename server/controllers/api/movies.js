@@ -1,5 +1,6 @@
 const fs = require("fs");
 const { Movie, Actor } = require("../../models/Movie");
+const { buildListQuery } = require("../../utils/query");
 
 const create = async (req, res) => {
   try {
@@ -275,13 +276,17 @@ const getById = async (req, res) => {
 };
 
 const list = async (req, res) => {
-  const { sort, order, limit, offset } = req.query;
+  const { actor, title, search, sort, order, limit, offset } = req.query;
 
-  const options = {
-    order: [[sort, order]],
-    limit: parseInt(limit),
-    offset: parseInt(offset),
-  };
+  const options = buildListQuery({
+    actor,
+    title,
+    search,
+    sort,
+    order,
+    limit,
+    offset,
+  });
 
   try {
     const movies = await Movie.findAll(options);

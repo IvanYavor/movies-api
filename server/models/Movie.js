@@ -39,4 +39,4 @@ Movie.init(
 Movie.belongsToMany(Actor, { through: "MovieActor" });
 Actor.belongsToMany(Movie, { through: "MovieActor" });
 
-module.exports = { Movie, Actor };
+module.exports = { Movie, Actor, sequelize };
