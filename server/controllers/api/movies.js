@@ -1,6 +1,7 @@
 const fs = require("fs");
 const { Movie, Actor } = require("../../models/Movie");
 const { buildListQuery } = require("../../utils/query");
+const { validateMovie } = require("../../utils/validation");
 
 const create = async (req, res) => {
   try {
@@ -19,6 +20,20 @@ const create = async (req, res) => {
             actors: "NOT_SPECIFIED",
           },
           code: "NOT_ALL_PARAMETERS",
+        },
+      });
+    }
+
+    if (!validateMovie({ title, year, format })) {
+      return res.status(400).json({
+        status: 0,
+        error: {
+          fields: {
+            title: "SHOULD_NOT_BE_EMPTY",
+            year: "SHOULD_BE_IN_CORRECT_RANGE",
+            format: "SHOULD_BE_ONE_OF_VHS_DVD_Blu-ray",
+          },
+          code: "INCORRECT_PARAMETERS",
         },
       });
     }
@@ -306,27 +321,33 @@ const list = async (req, res) => {
 const importFile = async (req, res) => {
   const { movies } = req.body;
 
+  // TODO validate movie input
   const fileData = fs.readFileSync(movies, "utf-8");
   const parsedJSON = parseIntoJSON(fileData);
 
   const createdMovies = [];
   for (const movieInfo of parsedJSON) {
-    try {
-      const createdMovie = await Movie.create({
-        title: movieInfo.title,
-        year: movieInfo.year,
-        format: movieInfo.format,
-      });
+    if (validateMovie(movieInfo)) {
+      try {
+        const createdMovie = await Movie.create({
+          title: movieInfo.title,
+          year: movieInfo.year,
+          format: movieInfo.format,
+        });
 
-      const createdActors = [];
-      for (const actorName of movieInfo.stars) {
-        createdActors.push(await Actor.create({ name: actorName }));
+        const createdActors = [];
+        for (const actorName of movieInfo.stars) {
+          createdActors.push(await Actor.create({ name: actorName }));
+        }
+
+        await createdMovie.addActors(createdActors);
+        createdMovies.push(createdMovie);
+      } catch (err) {
+        return res.status(400).json({ status: 0, error: err.message });
       }
-
-      await createdMovie.addActors(createdActors);
-      createdMovies.push(createdMovie);
-    } catch (err) {
-      return res.status(400).json({ status: 0, error: err.message });
+    } else {
+      // TODO delete else
+      console.log("Not valid movie");
     }
   }
 
@@ -343,7 +364,7 @@ const parseIntoJSON = (fileData) => {
   while ((match = movieRegex.exec(fileData)) !== null) {
     const movie = {
       title: match[1],
-      releaseYear: match[2],
+      year: +match[2],
       format: match[3],
       stars: match[4].split(",").map((s) => s.trim()),
     };

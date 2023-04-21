@@ -2,15 +2,15 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
 const User = require("../../models/User");
+const { validateEmail } = require("../../utils/validation");
 
 const create = async function (req, res) {
   try {
-    // Get user input
     const body = req.body;
 
-    const { name, email, password } = body;
+    const { name, email, password, confirmPassword } = body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !confirmPassword) {
       return res.status(400).json({
         status: 0,
         error: {
@@ -18,8 +18,34 @@ const create = async function (req, res) {
             email: "NOT_SPECIFIED",
             name: "NOT_SPECIFIED",
             password: "NOT_SPECIFIED",
+            confirmPassword: "NOT_SPECIFIED",
           },
           code: "NOT_ALL_PARAMETERS",
+        },
+      });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        status: 0,
+        error: {
+          fields: {
+            email: "NOT_CORRECT",
+          },
+          code: "INCORRECT_EMAIL",
+        },
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        status: 0,
+        error: {
+          fields: {
+            password: "NOT_CORRECT",
+            confirmPassword: "NOT_CORRECT",
+          },
+          code: "PASSWORDS_NOT_MATCH",
         },
       });
     }
