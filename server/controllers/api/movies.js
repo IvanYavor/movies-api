@@ -245,7 +245,7 @@ const update = async (req, res) => {
       { returning: true }
     );
   } catch (err) {
-    res.status(400).json({
+    return res.status(400).json({
       status: 0,
       error: {
         code: "FAILED_TO_UPDATE_MOVIE",
@@ -337,14 +337,13 @@ const list = async (req, res) => {
       data: movies,
     });
   } catch (err) {
-    res.status(500).json({ status: 0, error: err.message });
+    return res.status(500).json({ status: 0, error: err.message });
   }
 };
 
 const importFile = async (req, res) => {
   const { movies } = req.body;
 
-  // TODO validate movie input
   const fileData = fs.readFileSync(movies, "utf-8");
   const parsedJSON = parseIntoJSON(fileData);
 

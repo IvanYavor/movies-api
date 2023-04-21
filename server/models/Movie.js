@@ -22,6 +22,7 @@ Movie.init(
   {
     title: {
       type: DataTypes.STRING,
+      unique: true,
     },
     year: {
       type: DataTypes.INTEGER,
