@@ -4,6 +4,10 @@
 
 ## How to run application
 
+create .env file with data from .env.example
+
+then run commands:
+
 ```bash
 cd server
 npm i
