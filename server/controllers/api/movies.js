@@ -1,7 +1,10 @@
 const fs = require("fs");
 const { Movie, Actor } = require("../../models/Movie");
 const { buildListQuery } = require("../../utils/query");
-const { validateMovie } = require("../../utils/validation");
+const {
+  validateMovie,
+  validateUpdateMovie,
+} = require("../../utils/validation");
 
 const create = async (req, res) => {
   try {
@@ -169,6 +172,20 @@ const update = async (req, res) => {
           id: "NO_SPECIFIED",
         },
         code: "NOT_ALL_PARAMETERS",
+      },
+    });
+  }
+
+  if (!validateUpdateMovie({ title, year, format })) {
+    return res.status(400).json({
+      status: 0,
+      error: {
+        fields: {
+          title: "SHOULD_NOT_BE_EMPTY",
+          year: "SHOULD_BE_IN_CORRECT_RANGE",
+          format: "SHOULD_BE_ONE_OF_VHS_DVD_Blu-ray",
+        },
+        code: "INCORRECT_PARAMETERS",
       },
     });
   }
